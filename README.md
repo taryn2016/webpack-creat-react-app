@@ -60,7 +60,7 @@ creat-react-app 脚手架的webpack配置解读
 6. babel              -- babel配置,也可以配置在.babelrc文件
 
 经过 `npm run eject` 暴露过的package.json配置 该操作是单向操作不可逆
-```json
+```
 {
   "name": "testapp", /* 项目名 */
   "version": "0.1.0", /* 版本号*/
