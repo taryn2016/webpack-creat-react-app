@@ -60,92 +60,92 @@ creat-react-app 脚手架的webpack配置解读
 6. babel              -- babel配置,也可以配置在.babelrc文件
 
 经过 `npm run eject` 暴露过的package.json配置 该操作是单向操作不可逆
-```
+```javascript
 {
-  "name": "testapp", /* 项目名 */
-  "version": "0.1.0", /* 版本号*/
-  "private": true, /* 私有项目，静止意外发布私有存储库的方法*/
-  "dependencies": { /*依赖包,在开发和线上环境均需要使用*/
-    "@babel/core": "7.9.0", /*babel核心;babel是一个主要(不仅仅只是)用于将ECMAScript2015+版本的代码转换为向后兼容的JavaScript语法的工具链*/
-    "@svgr/webpack": "4.3.3", /*处理svg格式文件的webpack loader*/
+  "name": "testapp", // 项目名 
+  "version": "0.1.0", // 版本号
+  "private": true, // 私有项目，静止意外发布私有存储库的方法
+  "dependencies": { //依赖包,在开发和线上环境均需要使用
+    "@babel/core": "7.9.0", //babel核心;babel是一个主要(不仅仅只是)用于将ECMAScript2015+版本的代码转换为向后兼容的JavaScript语法的工具链
+    "@svgr/webpack": "4.3.3", //处理svg格式文件的webpack loader
     "@testing-library/jest-dom": "^4.2.4",
     "@testing-library/react": "^9.3.2",
     "@testing-library/user-event": "^7.1.2",
-    "@typescript-eslint/eslint-plugin": "^2.10.0", /*ts语法审查*/
-    "@typescript-eslint/parser": "^2.10.0", /*ts解析器*/
-    "babel-eslint": "10.1.0", /*对所有有效的babel代码进行lint处理*/
-    "babel-jest": "^24.9.0", /*转换jest代码*/
-    "babel-loader": "8.1.0", /*对js|mjs|jsx|ts|tsx处理的webpack loader*/
-    "babel-plugin-named-asset-import": "^0.3.6", /*babel-loader中的文件导入处理plugin*/
-    "babel-preset-react-app": "^9.1.2", /*按照react-app的模式配置babel,下面的babel项中可以配置详细参数(指定typescript语法等)*/
-    "camelcase": "^5.3.1", /*驼峰命名检查*/
-    "case-sensitive-paths-webpack-plugin": "2.3.0", /*处理导入路径语法时区分大小写检查 */
-    "css-loader": "3.4.2", /*.css文件loader*/
-    "dotenv": "8.2.0",  /*管理环境变量的模块,通过配置.env文件可以控制环境变量*/
-    "dotenv-expand": "5.1.0", /*扩展环境变量*/
-    "eslint": "^6.6.0", /*静态检查代码错误核心*/
-    "eslint-config-react-app": "^5.2.1", /*配置eslint为react-app模式*/
-    "eslint-loader": "3.0.3", /*静态检查代码错误loader*/
-    "eslint-plugin-flowtype": "4.6.0",/*eslint检查的plugin*/
-    "eslint-plugin-import": "2.20.1",/*eslint检查导入语句的plugin*/
-    "eslint-plugin-jsx-a11y": "6.2.3",/*eslint检查jsx语句的plugin*/
-    "eslint-plugin-react": "7.19.0", /* eslint检查react语句的plugin*/
-    "eslint-plugin-react-hooks": "^1.6.1", /* eslint检查react-hooks的plugin*/
-    "file-loader": "4.3.0", /* 文件处理默认loader,webpack中使用了oneOf,并且file-loader放最后,所以只有其他loader未处理情况下才会交由其处理*/
-    "fs-extra": "^8.1.0", /* 扩展自带fs的功能*/
-    "html-webpack-plugin": "4.0.0-beta.11", /* 打包html文件的webpack插件 */
+    "@typescript-eslint/eslint-plugin": "^2.10.0", //ts语法审查
+    "@typescript-eslint/parser": "^2.10.0", //ts解析器
+    "babel-eslint": "10.1.0", //对所有有效的babel代码进行lint处理
+    "babel-jest": "^24.9.0", //转换jest代码
+    "babel-loader": "8.1.0", //对js|mjs|jsx|ts|tsx处理的webpack loader
+    "babel-plugin-named-asset-import": "^0.3.6", //babel-loader中的文件导入处理plugin
+    "babel-preset-react-app": "^9.1.2", //按照react-app的模式配置babel,下面的babel项中可以配置详细参数(指定typescript语法等)
+    "camelcase": "^5.3.1", //驼峰命名检查
+    "case-sensitive-paths-webpack-plugin": "2.3.0", //处理导入路径语法时区分大小写检查 
+    "css-loader": "3.4.2", //.css文件loader
+    "dotenv": "8.2.0",  //管理环境变量的模块,通过配置.env文件可以控制环境变量
+    "dotenv-expand": "5.1.0", //扩展环境变量
+    "eslint": "^6.6.0", //静态检查代码错误核心
+    "eslint-config-react-app": "^5.2.1", //配置eslint为react-app模式
+    "eslint-loader": "3.0.3", //静态检查代码错误loader
+    "eslint-plugin-flowtype": "4.6.0",//eslint检查的plugin
+    "eslint-plugin-import": "2.20.1",//eslint检查导入语句的plugin
+    "eslint-plugin-jsx-a11y": "6.2.3",//eslint检查jsx语句的plugin
+    "eslint-plugin-react": "7.19.0", // eslint检查react语句的plugin
+    "eslint-plugin-react-hooks": "^1.6.1", // eslint检查react-hooks的plugin
+    "file-loader": "4.3.0", // 文件处理默认loader,webpack中使用了oneOf,并且file-loader放最后,所以只有其他loader未处理情况下才会交由其处理
+    "fs-extra": "^8.1.0", // 扩展自带fs的功能
+    "html-webpack-plugin": "4.0.0-beta.11", // 打包html文件的webpack插件 
     "identity-obj-proxy": "3.0.0",
-    /* 下面几项是关于测试的依赖 */
+    // 下面几项是关于测试的依赖 
     "jest": "24.9.0",
     "jest-environment-jsdom-fourteen": "1.0.1",
     "jest-resolve": "24.9.0",
     "jest-watch-typeahead": "0.4.2",
-    "mini-css-extract-plugin": "0.9.0", /* 压缩css文件插件 */
-    "optimize-css-assets-webpack-plugin": "5.0.3", /* 优化css和资源文件插件 */
-    "pnp-webpack-plugin": "1.6.4", /* 维护依赖路径,加快node_modules的查找速度 */
-    "postcss-flexbugs-fixes": "4.1.0", /* 预处理css,处理flex兼容问题 */
-    "postcss-loader": "3.0.0", /* css预处理loader */
-    "postcss-normalize": "8.0.1", /* 引入normalize.css或者sanitize.css */
-    "postcss-preset-env": "6.7.0", /* css兼容处理 */
-    "postcss-safe-parser": "4.0.1", /* 修复css语法错误 */
-    "react": "^16.13.1", /* react核心库 */
-    "react-app-polyfill": "^1.0.6",  /* 官方提供的兼容库,主要用于处理IE兼容问题 */
+    "mini-css-extract-plugin": "0.9.0", // 压缩css文件插件 
+    "optimize-css-assets-webpack-plugin": "5.0.3", // 优化css和资源文件插件 
+    "pnp-webpack-plugin": "1.6.4", // 维护依赖路径,加快node_modules的查找速度 
+    "postcss-flexbugs-fixes": "4.1.0", // 预处理css,处理flex兼容问题 
+    "postcss-loader": "3.0.0", // css预处理loader 
+    "postcss-normalize": "8.0.1", // 引入normalize.css或者sanitize.css 
+    "postcss-preset-env": "6.7.0", // css兼容处理 
+    "postcss-safe-parser": "4.0.1", // 修复css语法错误 
+    "react": "^16.13.1", // react核心库 
+    "react-app-polyfill": "^1.0.6",  // 官方提供的兼容库,主要用于处理IE兼容问题 
     "react-dev-utils": "^10.2.1",
-    "react-dom": "^16.13.1", /* react核心库,处理虚拟DOM渲染等功能 */
-    "resolve": "1.15.0",  /* 引入node中require.resolve()方法 */
-    "resolve-url-loader": "3.1.1",/* 处理url()语句的loader */
-    "sass-loader": "8.0.2",/* 处理sass文件的loader */
-    "semver": "6.3.0",/* 格式化版本号字符串*/
-    "style-loader": "0.23.1",/* 处理style文件的loader */
-    "terser-webpack-plugin": "2.3.5", /* 压缩JavaScript */
-    "ts-pnp": "1.1.6", /* 和pnp-webpack-plugin类似 */
-    "url-loader": "2.3.0", /* 将文件转换为base64格式(可以配置应用在小文件上) */
-    "webpack": "4.42.0", /* webpack核心*/
-    "webpack-dev-server": "3.10.3",  /* 开发环境服务器,具有热加载功能 */
-    "webpack-manifest-plugin": "2.2.0", /* 帮助打包时生成资源清单文件的插件 */
-    "workbox-webpack-plugin": "4.3.1" /* 提供完善的ServiceWorker和预缓存文件清单的插件 */
+    "react-dom": "^16.13.1", // react核心库,处理虚拟DOM渲染等功能 
+    "resolve": "1.15.0",  // 引入node中require.resolve()方法 
+    "resolve-url-loader": "3.1.1",// 处理url()语句的loader 
+    "sass-loader": "8.0.2",// 处理sass文件的loader 
+    "semver": "6.3.0",// 格式化版本号字符串
+    "style-loader": "0.23.1",// 处理style文件的loader 
+    "terser-webpack-plugin": "2.3.5", // 压缩JavaScript 
+    "ts-pnp": "1.1.6", // 和pnp-webpack-plugin类似 
+    "url-loader": "2.3.0", // 将文件转换为base64格式(可以配置应用在小文件上) 
+    "webpack": "4.42.0", // webpack核心
+    "webpack-dev-server": "3.10.3",  // 开发环境服务器,具有热加载功能 
+    "webpack-manifest-plugin": "2.2.0", // 帮助打包时生成资源清单文件的插件 
+    "workbox-webpack-plugin": "4.3.1" // 提供完善的ServiceWorker和预缓存文件清单的插件 
   },
-  "scripts": { /* 配置命令,执行npm run xxx即可运行scripts文件下对应的js文件 */
+  "scripts": { // 配置命令,执行npm run xxx即可运行scripts文件下对应的js文件 
     "start": "node scripts/start.js",
     "build": "node scripts/build.js",
     "test": "node scripts/test.js"
   },
   "eslintConfig": {
-    "extends": "react-app" /* eslint规则 */
+    "extends": "react-app" // eslint规则 
   },
-  "browserslist": { /* 浏览器兼容范围,也可以配置在.browserslistrc文件,会被Autoprefixer Babel postcss-preset-env等使用 */
+  "browserslist": { // 浏览器兼容范围,也可以配置在.browserslistrc文件,会被Autoprefixer Babel postcss-preset-env等使用 
     "production": [
-      ">0.2%", /* 兼容市场份额在0.2%以上的浏览器 */
-      "not dead", /* 在维护中的浏览器 */
-      "not op_mini all" /* 忽略OperaMini浏览器 */
+      ">0.2%", // 兼容市场份额在0.2%以上的浏览器 
+      "not dead", // 在维护中的浏览器 
+      "not op_mini all" // 忽略OperaMini浏览器 
     ],
-    "development": [ /* 开发环境只需兼容以下三种浏览器的最新版本 */
+    "development": [ // 开发环境只需兼容以下三种浏览器的最新版本 
       "last 1 chrome version",
       "last 1 firefox version",
       "last 1 safari version"
     ]
   },
-  "jest": { /* 测试 */
+  "jest": { // 测试 
     "roots": [
       "<rootDir>/src"
     ],
@@ -284,14 +284,10 @@ react-app-rewired 是对create-react-app 进行自定义配置的社区解决方
   3. 修改 package.json 里的启动配置
 
   ```json
-  /* package.json */
     "scripts": {
-      /* - */   "start": "react-scripts start",
-      /* + */   "start": "react-app-rewired start",
-      /* - */   "build": "react-scripts build",
-      /* + */   "build": "react-app-rewired build",
-      /* - */   "test": "react-scripts test",
-      /* + */   "test": "react-app-rewired test",
+      "start": "react-app-rewired start",
+      "build": "react-app-rewired build",
+      "test": "react-app-rewired test",
     }
   ```
   4. 配置文件config-overrides.js
