@@ -30,18 +30,24 @@ const postcssNormalize = require('postcss-normalize');
 const appPackageJson = require(paths.appPackageJson);
 
 // Source maps are resource heavy and can cause out of memory issue for large source files.
+// Source maps 占用大量资源，并且可能导致大型源文件的内存不足问题。
 const shouldUseSourceMap = process.env.GENERATE_SOURCEMAP !== 'false';
 // Some apps do not need the benefits of saving a web request, so not inlining the chunk
 // makes for a smoother build process.
+// 某些应用程序不需要保存Web请求的好处，因此，不内联代码块可简化构建过程。 
+// 是否内联 RuntimeChunk
 const shouldInlineRuntimeChunk = process.env.INLINE_RUNTIME_CHUNK !== 'false';
 
+// 是否扩展Eslint配置
 const isExtendingEslintConfig = process.env.EXTEND_ESLINT === 'true';
 
+// image大小限制。小于 '10000kb'压缩为base64
 const imageInlineSizeLimit = parseInt(
   process.env.IMAGE_INLINE_SIZE_LIMIT || '10000'
 );
 
 // Check if TypeScript is setup
+// 检查是否设置了 TypeScript
 const useTypeScript = fs.existsSync(paths.appTsConfig);
 
 // style files regexes
@@ -65,6 +71,7 @@ module.exports = function(webpackEnv) {
   // as %PUBLIC_URL% in `index.html` and `process.env.PUBLIC_URL` in JavaScript.
   // Omit trailing slash as %PUBLIC_URL%/xyz looks better than %PUBLIC_URL%xyz.
   // Get environment variables to inject into our app.
+  // 忽略尾部斜杠
   const env = getClientEnvironment(paths.publicUrlOrPath.slice(0, -1));
 
   // common function to get style loaders
@@ -75,6 +82,7 @@ module.exports = function(webpackEnv) {
         loader: MiniCssExtractPlugin.loader,
         // css is located in `static/css`, use '../../' to locate index.html folder
         // in production `paths.publicUrlOrPath` can be a relative path
+        // css位于“ static / css”中，使用“ ../../”定位生产环境“ paths.publicUrlOrPath”中的index.html文件夹可以是相对路径
         options: paths.publicUrlOrPath.startsWith('.')
           ? { publicPath: '../../' }
           : {},
@@ -131,7 +139,11 @@ module.exports = function(webpackEnv) {
   return {
     mode: isEnvProduction ? 'production' : isEnvDevelopment && 'development',
     // Stop compilation early in production
+    // 在第一个错误出现时抛出失败结果，而不是容忍它。
+    // 默认情况下，当使用 HMR 时， webpack 会将在终端以及浏览器控制台中，以红色文字记录这些错误，但仍然继续进行打包。
+    // production环境下 启用：
     bail: isEnvProduction,
+    // 此选项控制是否生成，以及如何生成 source map
     devtool: isEnvProduction
       ? shouldUseSourceMap
         ? 'source-map'
@@ -162,9 +174,13 @@ module.exports = function(webpackEnv) {
       // The build folder.
       path: isEnvProduction ? paths.appBuild : undefined,
       // Add /* filename */ comments to generated require()s in the output.
+      // 告诉 webpack 在 bundle 中引入「所包含模块信息」的相关注释。
+      // 此选项默认值是 false，并且不应该用于生产环境(production)，但是对阅读开发环境(development)中的生成代码(generated code)极其有用。
       pathinfo: isEnvDevelopment,
       // There will be one main bundle, and one file per asynchronous chunk.
       // In development, it does not produce real files.
+      // 将有一个主包，每个异步块一个文件。在开发中，它不会生成真实文件。
+      // contenthash 只有文件内容变了才会改变contenthash值
       filename: isEnvProduction
         ? 'static/js/[name].[contenthash:8].js'
         : isEnvDevelopment && 'static/js/bundle.js',
@@ -179,6 +195,7 @@ module.exports = function(webpackEnv) {
       // We inferred the "public path" (such as / or /my-project) from homepage.
       publicPath: paths.publicUrlOrPath,
       // Point sourcemap entries to original disk location (format as URL on Windows)
+      // 此选项仅在 「devtool 使用了需要模块名称的选项」时使用
       devtoolModuleFilenameTemplate: isEnvProduction
         ? info =>
             path
@@ -195,8 +212,11 @@ module.exports = function(webpackEnv) {
     },
     optimization: {
       minimize: isEnvProduction,
+      // 压缩插件
       minimizer: [
         // This is only used in production mode
+        // 在production 模式下才会被使用
+        // 压缩js包
         new TerserPlugin({
           terserOptions: {
             parse: {
@@ -260,9 +280,10 @@ module.exports = function(webpackEnv) {
       // Automatically split vendor and commons
       // https://twitter.com/wSokra/status/969633336732905474
       // https://medium.com/webpack/webpack-4-code-splitting-chunk-graph-and-the-splitchunks-optimization-be739a861366
+      // 对于动态导入模块，默认使用 webpack v4+ 提供的全新的通用分块策略(common chunk strategy)。请在 SplitChunksPlugin 页面中查看配置其行为的可用选项。
       splitChunks: {
-        chunks: 'all',
-        name: false,
+        chunks: 'all', // 三个可选值 all async initial
+        name: false, // name为true会自动基于块和缓存组密钥生成一个名称（会不断变化）。 对于生产版本，建议将splitChunks.name设置为false，以免不必要地更改名称。
       },
       // Keep the runtime chunk separated to enable long term caching
       // https://twitter.com/wSokra/status/969679223278505985
@@ -271,6 +292,7 @@ module.exports = function(webpackEnv) {
         name: entrypoint => `runtime-${entrypoint.name}`,
       },
     },
+    // 设置模块如何被解析
     resolve: {
       // This allows you to set a fallback for where webpack should look for modules.
       // We placed these paths second because we want `node_modules` to "win"
@@ -288,7 +310,7 @@ module.exports = function(webpackEnv) {
       extensions: paths.moduleFileExtensions
         .map(ext => `.${ext}`)
         .filter(ext => useTypeScript || !ext.includes('ts')),
-      alias: {
+      alias: { // 别名，确保模块引入更加方便简洁
         // Support React Native Web
         // https://www.smashingmagazine.com/2016/08/a-glimpse-into-the-future-with-react-native-for-web/
         'react-native': 'react-native-web',
@@ -299,7 +321,7 @@ module.exports = function(webpackEnv) {
         }),
         ...(modules.webpackAliases || {}),
       },
-      plugins: [
+      plugins: [ // 应该使用的额外的解析插件列表
         // Adds support for installing with Plug'n'Play, leading to faster installs and adding
         // guards against forgotten dependencies and such.
         PnpWebpackPlugin,
@@ -311,15 +333,15 @@ module.exports = function(webpackEnv) {
         new ModuleScopePlugin(paths.appSrc, [paths.appPackageJson]),
       ],
     },
-    resolveLoader: {
+    resolveLoader: { // 解析loader包
       plugins: [
         // Also related to Plug'n'Play, but this time it tells webpack to load its loaders
         // from the current package.
         PnpWebpackPlugin.moduleLoader(module),
       ],
     },
-    module: {
-      strictExportPresence: true,
+    module: { // 如何处理不同类型的模块
+      strictExportPresence: true, // 将缺失的导出提示成错误而不是警告
       rules: [
         // Disable require.ensure as it's not a standard language feature.
         { parser: { requireEnsure: false } },
@@ -328,7 +350,7 @@ module.exports = function(webpackEnv) {
         // It's important to do this before Babel processes the JS.
         {
           test: /\.(js|mjs|jsx|ts|tsx)$/,
-          enforce: 'pre',
+          enforce: 'pre',  // 指定 loader 种类。没有值表示是普通 loader。pre--前置， post--后置
           use: [
             {
               options: {
@@ -347,7 +369,7 @@ module.exports = function(webpackEnv) {
           // "oneOf" will traverse all following loaders until one will
           // match the requirements. When no loader matches it will fall
           // back to the "file" loader at the end of the loader list.
-          oneOf: [
+          oneOf: [ // 规则数组，当规则匹配时，只使用第一个匹配规则。
             // "url" loader works like "file" loader except that it embeds assets
             // smaller than specified limit in bytes as data URLs to avoid requests.
             // A missing `test` is equivalent to a match.
@@ -355,7 +377,7 @@ module.exports = function(webpackEnv) {
               test: [/\.bmp$/, /\.gif$/, /\.jpe?g$/, /\.png$/],
               loader: require.resolve('url-loader'),
               options: {
-                limit: imageInlineSizeLimit,
+                limit: imageInlineSizeLimit, // 小于imageInlineSizeLimit，则base64压缩
                 name: 'static/media/[name].[hash:8].[ext]',
               },
             },
@@ -560,6 +582,8 @@ module.exports = function(webpackEnv) {
       // Watcher doesn't work well if you mistype casing in a path so we use
       // a plugin that prints an error when you attempt to do this.
       // See https://github.com/facebook/create-react-app/issues/240
+      // 该Webpack插件将强制所有必需模块的整个路径与磁盘上实际路径的确切情况相匹配。
+      // 使用此插件可帮助缓解OSX上的开发人员不遵循严格的路径区分大小写的情况，这些情况将导致与其他开发人员或运行要求正确大小写路径的其他操作系统的构建盒发生冲突。
       isEnvDevelopment && new CaseSensitivePathsPlugin(),
       // If you require a missing module and then `npm install` it, you still have
       // to restart the development server for webpack to discover it. This plugin
@@ -567,6 +591,7 @@ module.exports = function(webpackEnv) {
       // See https://github.com/facebook/create-react-app/issues/186
       isEnvDevelopment &&
         new WatchMissingNodeModulesPlugin(paths.appNodeModules),
+      // 该插件将CSS提取到单独的文件中。 它为每个包含CSS的JS文件创建一个CSS文件。 它支持CSS和SourceMap的按需加载。
       isEnvProduction &&
         new MiniCssExtractPlugin({
           // Options similar to the same options in webpackOptions.output

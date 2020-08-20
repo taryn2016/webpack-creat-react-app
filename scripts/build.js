@@ -39,11 +39,13 @@ const WARN_AFTER_CHUNK_GZIP_SIZE = 1024 * 1024;
 const isInteractive = process.stdout.isTTY;
 
 // Warn and crash if required files are missing
+// 检测主要文件
 if (!checkRequiredFiles([paths.appHtml, paths.appIndexJs])) {
   process.exit(1);
 }
 
 // Generate configuration
+// 生成 production 的配置
 const config = configFactory('production');
 
 // We require that you explicitly set browsers and do not fall back to

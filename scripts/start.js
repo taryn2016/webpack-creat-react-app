@@ -1,41 +1,45 @@
 'use strict';
 
 // Do this as the first thing so that any code reading it knows the right env.
+// 设置环境变量
 process.env.BABEL_ENV = 'development';
 process.env.NODE_ENV = 'development';
 
 // Makes the script crash on unhandled rejections instead of silently
 // ignoring them. In the future, promise rejections that are not handled will
 // terminate the Node.js process with a non-zero exit code.
+// 脚本因为未处理的拒绝二奔溃时抛出错误，而不是默默忽略
 process.on('unhandledRejection', err => {
   throw err;
 });
 
 // Ensure environment variables are read.
+// 确保环境变量读取
 require('../config/env');
 
 
-const fs = require('fs');
-const chalk = require('react-dev-utils/chalk');
+const fs = require('fs'); // 文件系统
+const chalk = require('react-dev-utils/chalk'); // 翻译为粉笔，使终端输出log有不同的颜色
 const webpack = require('webpack');
 const WebpackDevServer = require('webpack-dev-server');
-const clearConsole = require('react-dev-utils/clearConsole');
-const checkRequiredFiles = require('react-dev-utils/checkRequiredFiles');
+const clearConsole = require('react-dev-utils/clearConsole'); // 清楚控制台
+const checkRequiredFiles = require('react-dev-utils/checkRequiredFiles'); // 确保文件是否存在
 const {
-  choosePort,
-  createCompiler,
-  prepareProxy,
-  prepareUrls,
+  choosePort, // 默认端口被占用时，给定空闲的端口
+  createCompiler, // 使用内置的有用消息为WebpackDevServer创建一个webpack编译器实例 
+  prepareProxy, // 根据package.json中的代理设置创建WebpackDevServer代理配置对象
+  prepareUrls, // 返回具有开发服务器的本地和远程URL的对象。将此对象传递给上述的createCompiler（）。
 } = require('react-dev-utils/WebpackDevServerUtils');
-const openBrowser = require('react-dev-utils/openBrowser');
+const openBrowser = require('react-dev-utils/openBrowser'); //打开浏览器
 const paths = require('../config/paths');
-const configFactory = require('../config/webpack.config');
-const createDevServerConfig = require('../config/webpackDevServer.config');
+const configFactory = require('../config/webpack.config'); // webpack 打包
+const createDevServerConfig = require('../config/webpackDevServer.config'); // webpack server本地服务
 
-const useYarn = fs.existsSync(paths.yarnLockFile);
-const isInteractive = process.stdout.isTTY;
+const useYarn = fs.existsSync(paths.yarnLockFile); // 如果路径存在，则返回 true，否则返回 false
+const isInteractive = process.stdout.isTTY; // 判断当前是否处于TTY(文本终端)上下文
 
 // Warn and crash if required files are missing
+// 缺少需要文件的时候，警告并且退出
 if (!checkRequiredFiles([paths.appHtml, paths.appIndexJs])) {
   process.exit(1);
 }
@@ -66,6 +70,7 @@ if (process.env.HOST) {
 const { checkBrowsers } = require('react-dev-utils/browsersHelper');
 checkBrowsers(paths.appPath, isInteractive)
   .then(() => {
+    console.log(1);
     // We attempt to use the default port but if it is busy, we offer the user to
     // run on a different port. `choosePort()` Promise resolves to the next free port.
     return choosePort(HOST, DEFAULT_PORT);
@@ -76,16 +81,16 @@ checkBrowsers(paths.appPath, isInteractive)
       return;
     }
 
-    const config = configFactory('development');
-    const protocol = process.env.HTTPS === 'true' ? 'https' : 'http';
-    const appName = require(paths.appPackageJson).name;
-    const useTypeScript = fs.existsSync(paths.appTsConfig);
-    const tscCompileOnError = process.env.TSC_COMPILE_ON_ERROR === 'true';
+    const config = configFactory('development'); //打包
+    const protocol = process.env.HTTPS === 'true' ? 'https' : 'http'; // 协议
+    const appName = require(paths.appPackageJson).name; // 应用名
+    const useTypeScript = fs.existsSync(paths.appTsConfig); // 根目录是否存在tsconfig.json文件
+    const tscCompileOnError = process.env.TSC_COMPILE_ON_ERROR === 'true'; // 是否设置了TSC_COMPILE_ON_ERROR为true
     const urls = prepareUrls(
       protocol,
       HOST,
       port,
-      paths.publicUrlOrPath.slice(0, -1)
+      paths.publicUrlOrPath.slice(0, -1) // 路径删除最后的/
     );
     const devSocket = {
       warnings: warnings =>
@@ -95,16 +100,17 @@ checkBrowsers(paths.appPath, isInteractive)
     };
     // Create a webpack compiler that is configured with custom messages.
     const compiler = createCompiler({
-      appName,
-      config,
-      devSocket,
+      appName, // 将打印到终端的名称。
+      config, // 提供给webpack构造函数的webpack配置选项。
+      devSocket, //如果useTypeScript为true的话这个参数是必须的。参数的作用包括错误和警告，接受类型检查发出的一系列的错误和警告,当运行fork-ts-checker-webpack-plugin with async: true 报告webpack构建完成后发出的错误
       urls,
-      useYarn,
-      useTypeScript,
-      tscCompileOnError,
-      webpack,
+      useYarn, //是否使用yarn
+      useTypeScript, //TypeScript类型检查将启用。如果将其设置为true，请确保提供上面的devSocket参数。
+      tscCompileOnError, // 如果为true, TypeScript类型检查中的错误不会阻止启动脚本运行应用程序，也不会导致构建脚本无法成功退出。 还将所有TypeScript类型检查错误消息降级为警告消息。
+      webpack, // 对webpack构造函数的引用。
     });
     // Load proxy config
+    // 导入proxy 配置
     const proxySetting = require(paths.appPackageJson).proxy;
     const proxyConfig = prepareProxy(
       proxySetting,
@@ -112,6 +118,7 @@ checkBrowsers(paths.appPath, isInteractive)
       paths.publicUrlOrPath
     );
     // Serve webpack assets generated by the compiler over a web server.
+    // 启动本地node服务
     const serverConfig = createDevServerConfig(
       proxyConfig,
       urls.lanUrlForConfig
@@ -138,10 +145,12 @@ checkBrowsers(paths.appPath, isInteractive)
         console.log();
       }
 
-      console.log(chalk.cyan('Starting the development server...\n'));
+      console.log(chalk.cyan('Starting the development server...\n')); // 启动中
       openBrowser(urls.localUrlForBrowser);
     });
 
+    // SIGINT在终端运行时，可以被所有平台支持，通常可以通过 <Ctrl>+C 触发, SIGTERM在 Windows 中不支持，可以给其绑定监听器。
+    // 发送 SIGINT、 SIGTERM 和 SIGKILL 会导致目标进程被无条件地终止，然后子进程会报告该进程已被信号终止。
     ['SIGINT', 'SIGTERM'].forEach(function(sig) {
       process.on(sig, function() {
         devServer.close();
