@@ -330,3 +330,466 @@ react-app-rewired 是对create-react-app 进行自定义配置的社区解决方
       addDecoratorsLegacy() // 启用旧版装饰器Babel插件
     );
   ```
+
+  ## 多页面修改
+
+  ### eject后的修改
+  
+  1. path.js 的修改
+  ```javascript
+    const glob = require('glob');
+    // 获取指定路径下的入口文件
+    function getEntries(globPath) {
+      const files = glob.sync(globPath),
+        entries = {};
+      files.forEach(function(filepath) {
+          const split = filepath.split('/');
+          const name = split[split.length - 2];
+          entries[name] = './' + filepath;
+      });
+      return entries;
+    }
+
+    const entries = getEntries('src/**/index.js');
+
+    function getIndexJs() {
+      const indexJsList = [];
+      Object.keys(entries).forEach((name) => {
+        const indexjs = resolveModule(resolveApp, `src/${name}/index`)
+        indexJsList.push({
+          name,
+          path: indexjs
+        });
+      })
+      return indexJsList;
+    }
+    const indexJsList = getIndexJs()
+
+    // module.exports修改appIndexJs并添加entries
+    module.exports = {
+      appIndexJs: indexJsList, // +++++++++++++
+      entries // +++++++++++++
+    };
+  ```
+  2. 配置webpack
+  ```JavaScript
+    // 配置webpack入口entry
+    const entry = {}
+    paths.appIndexJs.forEach(e => {
+      entry[e.name] = [
+        isEnvDevelopment &&
+          require.resolve('react-dev-utils/webpackHotDevClient'),
+        e.path
+      ].filter(Boolean)
+    });
+    // 修改entry为 entry
+    return {
+      entry: entry,
+    }
+    // 更改出口文件的配置ouput
+
+    // 没更改之前的
+    // filename: isEnvProduction
+    // ? 'static/js/[name].[contenthash:8].js'
+    // : isEnvDevelopment && 'static/js/bundle.js',
+    ...
+    // chunkFilename: isEnvProduction
+    // ? 'static/js/[name].[contenthash:8].chunk.js'
+    // : isEnvDevelopment && 'static/js/[name].chunk.js',
+
+    // 更改后的
+    filename: isEnvProduction
+    ? 'static/js/[name]/[name].[contenthash:8].js'
+    : isEnvDevelopment && 'static/js/[name]/[name].bundle.js',
+    ...
+    chunkFilename: isEnvProduction
+    ? 'static/js/[name]/[name].[contenthash:8].chunk.js'
+    : isEnvDevelopment && 'static/js/[name]/[name].chunk.js',
+
+    // 更改HtmlWebpackPlugin配置
+    // HtmlWebpackPlugin
+    // 这个plugin曝光率很高，他主要有两个作用
+    // 为html文件中引入的外部资源如script、link动态添加每次compile后的hash，防止引用缓存的外部文件问题
+    // 可以生成创建html入口文件，比如单页面可以生成一个html文件入口，配置N个html-webpack-plugin可以生成N个页面入口
+    ...Object.keys(paths.entries).map((name) => {
+      return new HtmlWebpackPlugin(
+        Object.assign(
+          {},
+          {
+            inject: true,
+            chunks: [name],
+            template: paths.appHtml,
+            filename: name + '.html',
+          },
+          isEnvProduction
+            ? {
+              minify: {
+                removeComments: true,
+                collapseWhitespace: true,
+                removeRedundantAttributes: true,
+                useShortDoctype: true,
+                removeEmptyAttributes: true,
+                removeStyleLinkTypeAttributes: true,
+                keepClosingSlash: true,
+                minifyJS: true,
+                minifyCSS: true,
+                minifyURLs: true,
+              },
+            }
+          : undefined
+        )
+      )
+    }),
+    // 注释ManifestPlugin部分代码
+    // 这是为了生成manifest.json文件的配置，这里不需要。
+  ```
+  3. 修改scripts/build.js和scripts/start.js文件的校验代码
+  ```javascript
+  // 原来的代码
+  // if (!checkRequiredFiles([paths.appHtml, paths.appIndexJs])) {
+  //   process.exit(1);
+  // }
+
+  // 修改后的代码
+  if (!checkRequiredFiles([paths.appHtml, ...paths.appIndexJs.map(e => e.path)])) {
+    process.exit(1);
+  }
+  ```
+  4. 删除public下多余文件
+    现在项目已经能够正常运行，但是public下还有多余的代码可以删除。
+    其中只需要留下index.html作为模板文件，并进行修改。
+
+  5. 总结
+    添加页面的方法
+    如果需要添加页面，只需要复制page1和page2的目录结构，放在src目录下，注意不能同名。
+    访问路径
+    http://localhost:3000/page1.html
+    http://localhost:3000/page2.html
+  
+  参考： https://blog.csdn.net/iwowen/article/details/103538942
+  
+
+  ### 直接自己完成webpack配置
+  ```javascript
+    const webpack = require('webpack');
+    const glob = require('glob');
+    const path = require('path');
+    const HtmlWebpackPlugin = require('html-webpack-plugin');
+    const ExtractTextPlugin = require('extract-text-webpack-plugin');
+    const CleanWebpackPlugin = require('clean-webpack-plugin');
+    const webpackConfig = {
+      entry: {},
+      output:{
+        path:path.resolve(__dirname, './dist/'),
+        filename:'[name]/[name].[chunkhash:6].js'
+      },
+      //设置开发者工具的端口号,不设置则默认为8080端口
+      devServer: {
+        inline: true,
+        port: 8082
+      },
+      module:{
+        rules:[
+          {
+            test:/\.js?$/,
+            exclude:/node_modules/,
+            loader:'babel-loader',
+            query:{
+                presets:['es2015','react']
+            }
+          },
+          {
+            test: /\.(scss|sass|css)$/, 
+            loader: ExtractTextPlugin.extract({fallback: "style-loader", use: "css-loader"})
+          },
+        ]
+      },
+      plugins: [
+        new ExtractTextPlugin("[name]/[name].[chunkhash:6].css"),
+        new CleanWebpackPlugin(
+          ['dist'],　 
+          {
+            root: __dirname,　　　　　　　　　
+            verbose:  true,        　　　　　　　　　　
+            dry:      false        　　　　　　　　　　
+          }
+        )
+      ],
+    };
+    // 获取指定路径下的入口文件
+    function getEntries(globPath) {
+      const files = glob.sync(globPath),
+        entries = {};
+      files.forEach(function(filepath) {
+        const split = filepath.split('/');
+        const name = split[split.length - 2];
+        entries[name] = './' + filepath;
+      });
+      return entries;
+    }
+    const entries = getEntries('src/**/index.js');
+    Object.keys(entries).forEach(function(name) {
+      webpackConfig.entry[name] = entries[name];
+      const plugin = new HtmlWebpackPlugin({
+        filename: name + '/' + name + '.html',
+        template: './public/index.html',
+        inject: true,
+        chunks: [name]
+      });
+      webpackConfig.plugins.push(plugin);
+    })
+    module.exports = webpackConfig;
+  ```
+  package.json
+  ```json
+    {
+      "name": "recmultify",
+      "version": "0.1.0",
+      "private": true,
+      "dependencies": {
+        "react": "^16.8.6",
+        "react-dom": "^16.8.6",
+        "react-scripts": "2.1.8"
+      },
+      "devDependencies": {
+        "babel-core": "^6.26.0",
+        "babel-loader": "^7.1.2",
+        "babel-preset-es2015": "^6.24.1",
+        "babel-preset-react": "^6.24.1",
+        "clean-webpack-plugin": "^0.1.16",
+        "css-loader": "^0.28.7",
+        "extract-text-webpack-plugin": "^3.0.0",
+        "file-loader": "^1.0.0",
+        "glob": "^7.1.2",
+        "html-webpack-plugin": "^2.30.1",
+        "postcss-loader": "^2.0.6",
+        "style-loader": "^0.18.2",
+        "url-loader": "^0.5.9",
+        "webpack": "^3.5.6",
+        "webpack-dev-server": "^2.8.1"
+      },
+      "scripts": {
+        "start": "webpack-dev-server --open",
+        "build": "webpack"
+      },
+      "eslintConfig": {
+        "extends": "react-app"
+      },
+      "browserslist": [
+        ">0.2%",
+        "not dead",
+        "not ie <= 11",
+        "not op_mini all"
+      ]
+    }
+  ```
+
+  ### 利用 react-app-rewired 扩展来完成多页面配置
+
+  最终 config-overrides.js
+
+  ```JavaScript
+    const rewireLess = require('react-app-rewire-less');
+    const { injectBabelPlugin, paths } = require('react-app-rewired');
+    const HtmlWebpackPlugin = require('html-webpack-plugin');
+    const path = require('path');
+    const fs = require('fs');
+    const globby = require('globby');
+    const appDirectory = fs.realpathSync(process.cwd());
+    const resolveApp = relativePath => path.resolve(appDirectory, relativePath);
+    // const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
+    module.exports = function override(config, env) {
+      // 使用 babel-plugin-import 按需加载组件
+      config = injectBabelPlugin(
+        ['import', { libraryName: 'antd', libraryDirectory: 'es', style: true }],
+        config,
+      );
+
+      // 增加 less 支持
+      config = rewireLess.withLoaderOptions({
+        // 解决报错: Inline JavaScript is not enabled. Is it set in your options?
+        javascriptEnabled: true,
+      })(config, env);
+
+      // 入口文件路径
+      // const entriesPath = globby.sync([resolveApp('src') + '/*/index.js']);
+      const entriesPath = globby.sync([resolveApp('src') + '/*/index.js'], {cwd: process.cwd()});
+      paths.entriesPath = entriesPath;
+
+      // 获取指定路径下的入口文件
+      function getEntries(){
+        const entries = {};
+        const files = paths.entriesPath;
+        files.forEach(filePath => {
+          let tmp = filePath.split('/');
+          let name = tmp[tmp.length - 2];
+          if(env === 'production'){
+            entries[name] = [
+              require.resolve('./node_modules/react-scripts/config/polyfills.js'),
+              filePath,
+            ];
+          } else {
+            entries[name] = [
+              require.resolve('./node_modules/react-scripts/config/polyfills.js'),
+              require.resolve('react-dev-utils/webpackHotDevClient'),
+              filePath,
+            ];
+          }
+        });
+        return entries;
+      }
+
+      // 入口文件对象
+      const entries = getEntries();
+
+      // 配置 HtmlWebpackPlugin 插件, 指定入口文件生成对应的 html 文件
+      let htmlPlugin;
+      if(env === 'production'){
+        htmlPlugin = Object.keys(entries).map(item => {
+          return new HtmlWebpackPlugin({
+            inject: true,
+            template: paths.appHtml,
+            filename: item + '.html',
+            chunks: [item],
+            minify: {
+              removeComments: true,
+              collapseWhitespace: true,
+              removeRedundantAttributes: true,
+              useShortDoctype: true,
+              removeEmptyAttributes: true,
+              removeStyleLinkTypeAttributes: true,
+              keepClosingSlash: true,
+              minifyJS: true,
+              minifyCSS: true,
+              minifyURLs: true,
+            },
+          });
+        });
+      } else {
+        htmlPlugin = Object.keys(entries).map(item => {
+          return new HtmlWebpackPlugin({
+            inject: true,
+            template: paths.appHtml,
+            filename: item + '.html',
+            chunks: [item],
+          });
+        });
+      }
+
+      if (env === 'production') {
+        for (let i = 0; i < config.plugins.length; i++) {
+          let item = config.plugins[i];
+
+          // 更改输出的样式文件名
+          if (item.constructor.toString().indexOf('class MiniCssExtractPlugin') > -1) {
+            item.options.filename = 'static/css/[name].css?_v=[contenthash:8]';
+            item.options.chunkFilename = 'static/css/[name].chunk.css?_v=[contenthash:8]';
+          }
+
+          // SWPrecacheWebpackPlugin: 使用 service workers 缓存项目依赖
+          if(item.constructor.toString().indexOf('function GenerateSW') > -1){
+            // 更改输出的文件名
+            item.config.precacheManifestFilename = 'precache-manifest.js?_v=[manifestHash]';
+          }
+        }
+
+        // 更改生产模式输出的文件名
+        config.output.filename = 'static/js/[name].js?_v=[chunkhash:8]';
+        config.output.chunkFilename = 'static/js/[name].chunk.js?_v=[chunkhash:8]';
+
+      } else {
+        // 更改开发模式输出的文件名
+        config.output.filename = 'static/js/[name].js';
+        config.output.chunkFilename = 'static/js/[name].chunk.js';
+      }
+
+      // 修改入口
+      config.entry = entries;
+
+      // 修改 HtmlWebpackPlugin 插件
+      for (let i = 0; i < config.plugins.length; i++) {
+        let item = config.plugins[i];
+        if (item.constructor.toString().indexOf('class HtmlWebpackPlugin') > -1) {
+          config.plugins.splice(i, 1);
+        }
+      }
+
+      config.plugins.push(...htmlPlugin);
+
+      // 分析打包内容
+      // config.plugins.push(new BundleAnalyzerPlugin());
+
+      // 设置别名路径
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        '@src': paths.appSrc, // 在使用中有些 Eslint 规则会报错, 禁用这部分代码的 Eslint 检测即可
+      };
+
+      // 处理 html 文档中图片路径问题
+      config.module.rules[2].oneOf.push({
+        test: /\.html$/,
+        loader: 'html-withimg-loader'
+      });
+
+      // 修改 build/static/media/ 路径下的文件名
+      for (let i = 0; i < config.module.rules[2].oneOf.length; i++) {
+        const item = config.module.rules[2].oneOf[i];
+        if(!item.options || !item.options.name){ 
+          continue;
+        }
+        let str = item.options.name.toString();
+        if(str.indexOf('static/media/[name].[hash:8].[ext]') > -1){
+          item.options.name = 'static/media/[name].[ext]?_v=[hash:8]';
+        }
+      }
+
+      // 修改代码拆分规则，详见 webpack 文档：https://webpack.js.org/plugins/split-chunks-plugin/#optimization-splitchunks
+      config.optimization = {
+        splitChunks: {
+          // 将所有入口点共同使用到的、次数超过 2 次的模块，创建为一个名为 commons 的代码块
+          // 这种配置方式可能会增大初始的捆绑包，比如有些公共模块在首页其实并未用到，但也会打包进来，会降低首页的加载性能
+          // 建议将非必需模块使用 import() 的方式动态加载，提升页面的加载速度
+          // cacheGroups: {
+          //   commons: {
+          //     name: 'commons',
+          //     chunks: 'initial',
+          //     minChunks: 2
+          //   }
+          // }
+
+          // 将所有使用到的 node_modules 中的模块包打包为 vendors 代码块。（不推荐）
+          // 这种方式可能会产生一个包含所有外部依赖包的较大代码块，建议只包含核心框架和工具函数代码，其他依赖项动态加载
+          // cacheGroups: {
+          //   commons: {
+          //     test: /[\\/]node_modules[\\/]/,
+          //     name: 'vendors',
+          //     chunks: 'all'
+          //   }
+          // }
+
+          cacheGroups: {
+            // 通过正则匹配，将 react react-dom echarts-for-react 等公共模块拆分为 vendor
+            // 这里仅作为示例，具体需要拆分哪些模块需要根据项目需要进行配置
+            // 可以通过 BundleAnalyzerPlugin 帮助确定拆分哪些模块包
+            vendor: {
+              test: /[\\/]node_modules[\\/](react|react-dom|echarts-for-react)[\\/]/,
+              name: 'vendor',
+              chunks: 'all', // all, async, and initial
+            },
+
+            // 将 css|less 文件合并成一个文件, mini-css-extract-plugin 的用法请参见文档：https://www.npmjs.com/package/mini-css-extract-plugin
+            // MiniCssExtractPlugin 会将动态 import 引入的模块的样式文件也分离出去，将这些样式文件合并成一个文件可以提高渲染速度
+            // 其实如果可以不使用 mini-css-extract-plugin 这个插件，即不分离样式文件，可能更适合本方案，但是我没有找到方法去除这个插件
+            styles: {            
+              name: 'styles',
+              test: /\.css|less$/,
+              chunks: 'all',    // merge all the css chunk to one file
+              enforce: true
+            }
+          },
+        },
+      };
+
+      return config;
+    };
+  ```
