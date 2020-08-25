@@ -31,7 +31,7 @@ const appPackageJson = require(paths.appPackageJson);
 
 // Source maps are resource heavy and can cause out of memory issue for large source files.
 // Source maps 占用大量资源，并且可能导致大型源文件的内存不足问题。
-const shouldUseSourceMap = process.env.GENERATE_SOURCEMAP !== 'false';
+const shouldUseSourceMap = process.env.GENERATE_SOURCEMAP !== 'false';  // GENERATE_SOURCEMAP为false时不生成[hash].map.js文件
 // Some apps do not need the benefits of saving a web request, so not inlining the chunk
 // makes for a smoother build process.
 // 某些应用程序不需要保存Web请求的好处，因此，不内联代码块可简化构建过程。 
